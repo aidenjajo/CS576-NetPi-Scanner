@@ -1,1 +1,10 @@
-
+IP,MAC,Hostname,Active
+192.168.1.1,F8:85:F9:A2:BB:80,router.home.local,True
+192.168.1.112,80:6D:71:B7:3C:D3,N/A,True
+192.168.1.126,9C:76:13:96:21:F8,RingSpotlightCam-f8.home.local,True
+192.168.1.128,B4:B7:42:FD:A1:45,N/A,True
+192.168.1.136,N/A,arsenal.home.local,True
+192.168.1.160,88:A2:9E:38:0C:22,netPi.home.local,True
+192.168.1.181,68:B6:91:A1:E4:C3,N/A,True
+192.168.1.196,68:FC:CA:E8:A0:C2,Samsung.home.local,True
+192.168.1.227,00:35:FF:03:20:F2,Ring-0320f2.home.local,True
