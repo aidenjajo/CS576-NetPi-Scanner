@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--
+    Team Members: Aiden Jajo, Diego Lopez, Manuel Jimenez, Romel Aleman
+    School: San Diego State University
+    Course: CS576-03 - Computer Networks and Distributed Systems
+    Project: NetPi-Scanner
+    
+    Packet analysis page for detailed traffic inspection.
+    Displays protocol distribution, top IPs, active ports, and DNS queries from captured packets.
+    -->
+    
+    <meta charset="UTF-8">
+    <title>Packet Analysis - NetPi Scanner</title>
+    <style>
+        :root {
+            /* Theme colors */
+            --bg:#020617;
+            --panel:#0b1120;
+            --panel-soft:#0f172a;
+            --border:#1d2755;
+            --text:#e6e9f5;
+            --muted:#a9b0c7;
+            --accent:#6ee7ff;
+            --accent-2:#a78bfa;
+        }
+
+        /* Basic reset */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* Page background and base text settings */
+        body {
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            color: var(--text);
+            padding: 32px 16px;
+            background: radial-gradient(circle at 0% 0%, #1e293b 0, transparent 55%),
+                        radial-gradient(circle at 110% 0%, #4c1d95 0, transparent 55%),
+                        radial-gradient(circle at 0% 120%, #0f172a 0, transparent 55%),
+                        var(--bg);
+        }
+
+        /* Max width wrapper */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Top header card */
+        .header {
+            background: radial-gradient(circle at top left, rgba(148,163,253,0.06), transparent 60%),
+                        radial-gradient(circle at bottom right, rgba(45,212,191,0.04), transparent 60%),
+                        var(--panel-soft);
+            border: 1px solid rgba(148,163,253,0.25);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 26px 80px rgba(15,23,42,0.85);
+        }
+
+        /* Main page title */
+        h1 {
+            font-size: 26px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #f9fafb;
+            margin-bottom: 8px;
+        }
+
+        .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+
+        /* Back link to sniffer page */
+        .back-link {
+            display: inline-block;
+            margin-bottom: 16px;
+            color: var(--accent-2);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover { color: var(--accent); }
+        
+        /* Capture selection panel */
+        .selector-panel {
+            background: var(--panel-soft);
+            border: 1px solid rgba(148,163,253,0.25);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .selector-panel h2 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        /* Grid of available capture files */
+        .capture-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        /* Single capture item card */
+        .capture-item {
+            background: rgba(15,23,42,0.95);
+            border: 1px solid rgba(148,163,253,0.4);
+            border-radius: 12px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .capture-item:hover {
+            border-color: var(--accent);
+            background: rgba(30,64,175,0.3);
+        }
+        .capture-item.active {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, rgba(110,231,255,0.15), rgba(167,139,250,0.15));
+        }
+
+        .capture-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+        .capture-date {
+            font-size: 11px;
+            color: var(--muted);
+        }
+        
+        /* Grid that holds analysis panels */
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        /* Generic panel card */
+        .panel {
+            background: radial-gradient(circle at top left, rgba(148,163,253,0.06), transparent 60%),
+                        var(--panel-soft);
+            border: 1px solid rgba(148,163,253,0.25);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 12px 40px rgba(15,23,42,0.6);
+        }
+        .panel h3 {
+            font-size: 15px;
+            margin-bottom: 14px;
+            color: var(--accent-2);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Overview stat cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .stat-card {
+            background: rgba(15,23,42,0.9);
+            border: 1px solid rgba(148,163,253,0.3);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Protocol distribution bar chart */
+        .protocol-bars {
+            margin-top: 12px;
+        }
+        .protocol-bar {
+            margin-bottom: 14px;
+        }
+        .protocol-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .protocol-value {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .bar-bg {
+            height: 8px;
+            background: rgba(15,23,42,0.9);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-2), var(--accent));
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+        
+        /* Table styling for IPs, ports, DNS */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        thead {
+            background: rgba(15,23,42,1);
+        }
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid rgba(51,65,85,1);
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(51,65,85,0.5);
+        }
+        tbody tr:hover {
+            background: rgba(30,64,175,0.25);
+        }
+        
+        /* Buttons for actions (if needed) */
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,253,0.8);
+            background: linear-gradient(135deg, rgba(110,231,255,0.35), rgba(167,139,250,0.35));
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 8px;
+        }
+        .button:hover {
+            background: linear-gradient(135deg, rgba(110,231,255,0.5), rgba(167,139,250,0.5));
+        }
+        .button.secondary {
+            background: rgba(15,23,42,0.95);
+            color: var(--muted);
+        }
+        
+        /* Empty state when no analysis is selected */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        
+        /* Responsive tweaks for smaller screens */
+        @media (max-width: 768px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Top header section with back link and title -->
+        <div class="header">
+            <a href="{{ url_for('sniffer') }}" class="back-link">← Back to Sniffer</a>
+            <h1>Packet Analysis</h1>
+            <p class="subtitle">Detailed analysis of captured network traffic</p>
+        </div>
+        
+        <!-- Capture selection list (shown only if there are .pcap files) -->
+        {% if pcap_files %}
+        <div class="selector-panel">
+            <h2>Select Capture to Analyze</h2>
+            <div class="capture-list">
+                {% for file in pcap_files %}
+                <div class="capture-item {% if selected_file == file %}active{% endif %}" 
+                     onclick="window.location.href='{{ url_for('sniffer_analysis', filename=file) }}'">
+                    <div class="capture-name">{{ file }}</div>
+                    <div class="capture-date">
+                        {% set parts = file.replace('capture_', '').replace('.pcap', '').split('_') %}
+                        {% if parts|length >= 2 %}
+                            {{ parts[0][:4] }}-{{ parts[0][4:6] }}-{{ parts[0][6:8] }} 
+                            {{ parts[1][:2] }}:{{ parts[1][2:4] }}:{{ parts[1][4:6] }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Main analysis area -->
+        {% if analysis %}
+        <div class="analysis-grid">
+            <!-- Overview stats panel -->
+            <div class="panel">
+                <h3>Capture Overview</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ analysis.total_packets }}</div>
+                        <div class="stat-label">Total Packets</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ analysis.unique_ips }}</div>
+                        <div class="stat-label">Unique IPs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ analysis.protocols|length }}</div>
+                        <div class="stat-label">Protocols</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ analysis.unique_ports }}</div>
+                        <div class="stat-label">Unique Ports</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Protocol distribution panel -->
+            <div class="panel">
+                <h3>Protocol Distribution</h3>
+                <div class="protocol-bars">
+                    {% for proto in analysis.protocols %}
+                    <div class="protocol-bar">
+                        <div class="protocol-label">
+                            <span>{{ proto.Protocol }}</span>
+                            <span class="protocol-value">{{ proto.Count }} ({{ proto.Percentage }}%)</span>
+                        </div>
+                        <div class="bar-bg">
+                            <div class="bar-fill" style="width: {{ proto.Percentage }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Top IP addresses panel -->
+            <div class="panel">
+                <h3>Top IP Addresses</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Packets</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ip in analysis.top_ips[:10] %}
+                        <tr>
+                            <td>{{ ip['IP Address'] }}</td>
+                            <td>{{ ip['Packet Count'] }}</td>
+                            <td>
+                                {% if ip['IP Address'].startswith('192.168.') or ip['IP Address'].startswith('10.') %}
+                                    <span style="color: var(--accent);">Local</span>
+                                {% elif ip['IP Address'].startswith('239.') or ip['IP Address'].startswith('224.') %}
+                                    <span style="color: var(--accent-2);">Multicast</span>
+                                {% else %}
+                                    <span style="color: var(--muted);">External</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Top ports panel -->
+            <div class="panel">
+                <h3>Most Active Ports</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Port</th>
+                            <th>Service</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for port in analysis.top_ports[:10] %}
+                        <tr>
+                            <td>{{ port.Port }}</td>
+                            <td>{{ port.Service }}</td>
+                            <td>{{ port.Count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- DNS queries panel (only shown if there are DNS rows) -->
+            {% if analysis.dns_queries %}
+            <div class="panel">
+                <h3>DNS Queries</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Domain</th>
+                            <th>Queries</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dns in analysis.dns_queries[:15] %}
+                        <tr>
+                            <td style="word-break: break-all;">{{ dns.Domain }}</td>
+                            <td>{{ dns['Query Count'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+            
+        </div>
+        {% else %}
+        <!-- When there is no current analysis selected -->
+        <div class="panel">
+            <div class="empty-state">
+                <h3>No Analysis Selected</h3>
+                <p>Select a packet capture above to view detailed analysis</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
