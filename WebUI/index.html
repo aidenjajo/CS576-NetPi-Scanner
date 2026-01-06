@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+  Team Members: Aiden Jajo, Diego Lopez, Manuel Jimenez, Romel Aleman
+  School: San Diego State University
+  Course: CS576-03 - Computer Networks and Distributed Systems
+  Project: NetPi-Scanner
+  
+  Main homepage for NetPi-Scanner web interface.
+  Displays feature cards for network scanning, performance testing, reports, and packet sniffing.
+  -->
+  
+  <!-- basic page setup -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NetPi Scanner</title>
+
+  <!-- styles for layout, colors, cards, and buttons -->
+  <style>
+    :root{
+      /* theme colors */
+      --bg:#0b1020;
+      --panel:#121735;
+      --panel-2:#0f1430;
+      --text:#e6e9f5;
+      --muted:#a9b0c7;
+      --accent:#6ee7ff;
+      --accent-2:#a78bfa;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --radius:18px;
+    }
+
+    /* resets and base styling */
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 10% -20%, #1b2250, transparent),
+                 radial-gradient(1000px 500px at 110% 10%, #1a1447, transparent),
+                 var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+      padding:24px;
+    }
+
+    /* main container */
+    .wrap{
+      width:min(1000px,100%);
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:var(--radius);
+      box-shadow:0 20px 80px rgba(0,0,0,0.5);
+      padding:28px;
+    }
+
+    /* header section */
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:16px; margin-bottom:22px;
+    }
+
+    /* brand/logo styling */
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      font-weight:800;
+      font-size:22px;
+    }
+
+    /* glowing dot next to title */
+    .dot{
+      width:14px;height:14px;border-radius:50%;
+      background:conic-gradient(from 180deg, var(--accent), var(--accent-2));
+      box-shadow:0 0 18px rgba(110,231,255,0.8);
+    }
+
+    /* grid layout for feature cards */
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:16px;
+    }
+
+    /* responsive layout for mobile */
+    @media (max-width: 800px){
+      .grid{grid-template-columns:1fr;}
+    }
+
+    /* feature cards */
+    .card{
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:14px;
+      padding:18px;
+      display:flex; flex-direction:column; gap:10px;
+      transition:transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+
+    /* hover animation */
+    .card:hover{
+      transform:translateY(-3px);
+      border-color:rgba(110,231,255,0.5);
+      background:rgba(255,255,255,0.05);
+    }
+
+    /* card title */
+    .title{font-size:18px;font-weight:700;}
+
+    /* card description text */
+    .desc{
+      color:var(--muted);
+      line-height:1.4;
+      font-size:14px;
+    }
+
+    /* buttons inside cards */
+    .btn{
+      margin-top:auto;
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.08);
+      text-decoration:none;
+      color:var(--text);
+      font-weight:600;
+      background:linear-gradient(180deg, rgba(110,231,255,0.18), rgba(167,139,250,0.18));
+    }
+
+    /* secondary button style */
+    .btn.secondary{
+      background:rgba(255,255,255,0.04);
+    }
+
+    /* footer styling */
+    footer{
+      margin-top:18px;
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <!-- header with branding -->
+    <header>
+      <div class="brand">
+        <div class="dot"></div>
+        NetPi Scanner
+      </div>
+      <div style="color:var(--muted);font-size:14px;">
+        CS576 Web UI
+      </div>
+    </header>
+
+    <!-- main feature grid -->
+    <div class="grid">
+
+      <!-- scan Network card -->
+      <div class="card">
+        <div class="title">Scan Network</div>
+        <div class="desc">
+          Discover active devices using Nmap and save results to CSV.
+        </div>
+        <a class="btn" href="{{ url_for('scan') }}">Open Scanner →</a>
+      </div>
+
+      <!-- performance test card -->
+      <div class="card">
+        <div class="title">Performance Test</div>
+        <div class="desc">
+          Run ping tests, TCP checks, and bandwidth measurement.
+        </div>
+        <a class="btn" href="{{ url_for('performance') }}">Run Performance →</a>
+      </div>
+
+      <!-- reports card -->
+      <div class="card">
+        <div class="title">Reports</div>
+        <div class="desc">
+          View all CSV logs from previous scans and performance runs.
+        </div>
+        <a class="btn secondary" href="{{ url_for('reports') }}">View Reports →</a>
+      </div>
+
+    </div>
+
+    <!-- packet Sniffer card (placed outside grid) -->
+    <div class="card" style="margin-top:16px;">
+      <div class="title">Packet Sniffer</div>
+      <div class="desc">
+        Capture packets across the network and analyze traffic.
+      </div>
+      <a class="btn" href="{{ url_for('sniffer') }}">Capture Packets →</a>
+    </div>
+
+    <!-- footer -->
+    <footer>
+      NetPi Scanner – lightweight network discovery and diagnostics
+    </footer>
+
+  </div>
+</body>
+</html>
