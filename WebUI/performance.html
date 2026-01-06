@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!--
+	Team Members: Aiden Jajo, Diego Lopez, Manuel Jimenez, Romel Aleman
+	School: San Diego State University
+	Course: CS576-03 - Computer Networks and Distributed Systems
+	Project: NetPi-Scanner
+	
+	Performance testing page for NetPi-Scanner.
+	Allows users to run network performance benchmarks and view historical performance logs.
+	-->
+	
+	<meta charset="UTF-8">
+	<title>Performance – NetPi Scanner</title>
+
+	<!-- Page styling and theme colors -->
+	<style>
+		:root {
+			/* Theme colors */
+			--bg:#020617;
+			--panel:#0b1120;
+			--panel-soft:#0f172a;
+			--border:#1d2755;
+			--text:#e6e9f5;
+			--muted:#a9b0c7;
+			--accent:#6ee7ff;
+			--accent-2:#a78bfa;
+		}
+
+		/* Reset and page layout */
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			font-family: system-ui, -apple-system, BlinkMacSystemFont;
+			color: var(--text);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			padding: 32px 12px;
+			/* Background lighting effects */
+			background: radial-gradient(circle at 0% 0%, #1e293b 0, transparent 55%),
+						radial-gradient(circle at 110% 0%, #4c1d95 0, transparent 55%),
+						radial-gradient(circle at 0% 120%, #0f172a 0, transparent 55%),
+						var(--bg);
+		}
+
+		/* Main content container */
+		.container {
+			max-width: 880px;
+			width: 100%;
+			background: radial-gradient(circle at top left, rgba(148,163,253,0.06), transparent 60%),
+						radial-gradient(circle at bottom right, rgba(45,212,191,0.04), transparent 60%),
+						var(--panel-soft);
+			border: 1px solid rgba(148,163,253,0.25);
+			border-radius: 24px;
+			padding: 22px;
+			display: flex;
+			flex-direction: column;
+			min-height: 60vh;
+			box-shadow: 0 26px 80px rgba(15,23,42,0.85);
+			backdrop-filter: blur(26px);
+		}
+
+		/* Page title */
+		h1 {
+			margin-top: 0;
+			font-size: 22px;
+			letter-spacing: 0.04em;
+			text-transform: uppercase;
+		}
+
+		.subtitle { font-size: 14px; margin-bottom: 20px; color: var(--muted); }
+
+		/* Action cards layout */
+		.actions { display: flex; flex-wrap: wrap; gap: 16px; }
+
+		/* Individual action box */
+		.action {
+			flex: 1 1 220px;
+			border-radius: 16px;
+			padding: 14px 16px;
+			background: radial-gradient(circle at top left, rgba(51,65,85,0.4), transparent 60%),
+						radial-gradient(circle at bottom right, rgba(15,23,42,0.9), transparent 60%),
+						rgba(15,23,42,0.95);
+			border: 1px solid rgba(148,163,253,0.4);
+		}
+
+		.action h2 { font-size: 15px; margin: 0 0 6px; }
+		.action p  { font-size: 13px; margin: 0 0 10px; color: var(--muted); }
+
+		/* Buttons */
+		.link {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 13px;
+			padding: 7px 14px;
+			border-radius: 999px;
+			border: 1px solid rgba(148,163,253,0.8);
+			text-decoration: none;
+			cursor: pointer;
+			font-weight: 600;
+			background: linear-gradient(135deg, rgba(110,231,255,0.35), rgba(167,139,250,0.35));
+		}
+
+		.link.secondary {
+			background: rgba(15,23,42,0.95);
+			color: var(--muted);
+		}
+
+		/* Performance log table styles */
+		table { width: 100%; border-collapse: collapse; }
+		thead { background: rgba(15,23,42,1); }
+		th, td { padding: 6px 8px; }
+		th { color: var(--muted); border-bottom: 1px solid rgba(51,65,85,1); }
+		tbody tr:nth-child(even) { background: rgba(15,23,42,0.9); }
+		tbody tr:nth-child(odd)  { background: rgba(15,23,42,0.8); }
+		tbody tr:hover { background: rgba(30,64,175,0.55); }
+
+		/* Modal backgrounds and styling */
+		#perf-modal, #scan-modal {
+			display: none;
+			position: fixed;
+			inset: 0;
+			background: rgba(15,23,42,0.85);
+			backdrop-filter: blur(10px);
+			align-items: center;
+			justify-content: center;
+		}
+
+		#perf-modal > div {
+			background: var(--panel-soft);
+			border-radius: 18px;
+			padding: 20px;
+			border: 1px solid rgba(148,163,253,0.8);
+			box-shadow: 0 22px 60px rgba(15,23,42,0.95);
+			text-align: center;
+		}
+
+		.footer {
+			margin-top: auto;
+			font-size: 12px;
+			color: var(--muted);
+			text-align: center;
+			padding-top: 10px;
+		}
+
+		/* Mobile adjustments */
+		@media (max-width:720px){
+			.container { padding:18px 14px; }
+		}
+	</style>
+</head>
+
+<body>
+	<!-- Main content block -->
+	<div class="page container">
+
+		<!-- Page header -->
+		<h1>Performance</h1>
+		<p class="subtitle">Run benchmarks or view previously logged performance metrics.</p>
+
+		<!-- Action buttons section -->
+		<div class="actions">
+
+			<!-- Start performance tests -->
+			<div class="action">
+				<h2>Start Benchmarks</h2>
+				<p>Run a suite of performance tests on the configured devices.</p>
+				<button id="start-perf" class="link">Start Benchmarks</button>
+			</div>
+
+		</div>
+
+		<!-- Performance log table -->
+		<div style="margin-top:18px;">
+			<h2>Performance Log</h2>
+
+			<!-- Show log if available -->
+			{% if perf_rows and perf_rows|length > 0 %}
+				<div style="border:1px solid #ddd; border-radius:4px; padding:8px; background:#fafafa; overflow:auto;">
+
+					<!-- Log table -->
+					<table>
+						<thead>
+							<tr>
+								<th>IP</th>
+								<th>ICMP Sent</th>
+								<th>ICMP Recv</th>
+								<th>Loss %</th>
+								<th>RTT Avg (ms)</th>
+								<th>TCP Port</th>
+								<th>TCP Connect (ms)</th>
+								<th>Bandwidth (kbps)</th>
+								<th>Open Ports</th>
+							</tr>
+						</thead>
+
+						<!-- Loop through log rows -->
+						<tbody>
+						{% for r in perf_rows %}
+							<tr>
+								<td>{{ r['IP'] }}</td>
+								<td>{{ r.get('icmp_sent','') }}</td>
+								<td>{{ r.get('icmp_received','') }}</td>
+								<td>{{ r.get('icmp_loss_pct','') }}</td>
+								<td>{{ r.get('rtt_avg','') }}</td>
+								<td>{{ r.get('tcp_port','') }}</td>
+								<td>{{ r.get('tcp_connect','') }}</td>
+								<td>{{ r.get('bandwidth_kbps','') }}</td>
+								<td>{{ r.get('open_ports','') }}</td>
+							</tr>
+						{% endfor %}
+						</tbody>
+					</table>
+
+				</div>
+			{% else %}
+				<!-- No logs available -->
+				<p><em>No performance logs found.</em></p>
+			{% endif %}
+		</div>
+
+		<!-- Modal shown when running benchmarks -->
+		<div id="perf-modal">
+			<div>
+				<p id="perf-modal-message">Running benchmarks...</p>
+				<div id="perf-modal-actions" style="margin-top:12px; display:none;">
+					<button id="perf-ok" class="link secondary">OK</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Back to home link -->
+		<p style="margin-top:12px;"><a href="{{ url_for('index') }}">← Back to Home</a></p>
+
+		<p class="footer">NetPi Scanner – quick actions.</p>
+	</div>
+
+	<!-- JavaScript for running benchmarks + modal logic -->
+	<script>
+		const startBtn = document.getElementById('start-perf');
+		const modal = document.getElementById('perf-modal');
+		const modalMessage = document.getElementById('perf-modal-message');
+		const modalActions = document.getElementById('perf-modal-actions');
+		const perfOk = document.getElementById('perf-ok');
+
+		// Show modal with message
+		function showModal(msg, showOk=false){
+			modalMessage.textContent = msg;
+			modal.style.display = 'flex';
+			modalActions.style.display = showOk ? 'block' : 'none';
+		}
+
+		// Hide modal
+		function hideModal(){
+			modal.style.display = 'none';
+		}
+
+		// Start performance test when clicked
+		startBtn.addEventListener('click', () => {
+			showModal('Running benchmarks... This may take a while', false);
+
+			fetch('{{ url_for("performance") }}', { method: 'POST' })
+				.then(resp => resp.json())
+				.then(data => {
+					if(data && data.status === 'ok'){
+						showModal('Benchmarks complete', true);
+					} else {
+						showModal('Benchmarks failed: ' + (data.message || 'unknown'), true);
+					}
+				})
+				.catch(err => {
+					showModal('Benchmarks failed: ' + err.toString(), true);
+				});
+		});
+
+		// Close modal and refresh page
+		perfOk.addEventListener('click', () => {
+			hideModal();
+			window.location.reload();
+		});
+	</script>
+</body>
+</html>
