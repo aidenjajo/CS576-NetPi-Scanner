@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--
+    Team Members: Aiden Jajo, Diego Lopez, Manuel Jimenez, Romel Aleman
+    School: San Diego State University
+    Course: CS576-03 - Computer Networks and Distributed Systems
+    Project: NetPi-Scanner
+    
+    Packet sniffer page for capturing and analyzing network traffic.
+    Allows users to configure capture duration, protocol filters, target devices, and interface selection.
+    -->
+    
+    <meta charset="UTF-8">
+    <title>Packet Sniffer - NetPi Scanner</title>
+    <style>
+        :root {
+            /* Theme colors */
+            --bg:#020617;
+            --panel:#0b1120;
+            --panel-soft:#0f172a;
+            --border:#1d2755;
+            --text:#e6e9f5;
+            --muted:#a9b0c7;
+            --accent:#6ee7ff;
+            --accent-2:#a78bfa;
+        }
+    
+        /* Page layout and background */
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 32px 12px;
+            background: radial-gradient(circle at 0% 0%, #1e293b 0, transparent 55%),
+                        radial-gradient(circle at 110% 0%, #4c1d95 0, transparent 55%),
+                        radial-gradient(circle at 0% 120%, #0f172a 0, transparent 55%),
+                        var(--bg);
+        }
+    
+        /* Main card container */
+        .container {
+            max-width: 880px;
+            width: 100%;
+            background: radial-gradient(circle at top left, rgba(148,163,253,0.06), transparent 60%),
+                        radial-gradient(circle at bottom right, rgba(45,212,191,0.04), transparent 60%),
+                        var(--panel-soft);
+            border: 1px solid rgba(148,163,253,0.25);
+            border-radius: 24px;
+            padding: 22px 22px 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 60vh;
+            box-shadow: 0 26px 80px rgba(15,23,42,0.85), 0 0 0 1px rgba(15,23,42,0.9);
+            backdrop-filter: blur(26px);
+        }
+    
+        /* Page heading */
+        h1 {
+            margin-top: 0;
+            font-size: 22px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #f9fafb;
+        }
+    
+        .subtitle { font-size: 14px; margin-bottom: 20px; color: var(--muted); }
+
+        /* Reusable action card layout (if you add cards later) */
+        .actions { display: flex; flex-wrap: wrap; gap: 16px; }
+    
+        .action {
+            flex: 1 1 260px;
+            border-radius: 16px;
+            padding: 14px 16px 12px;
+            background: radial-gradient(circle at top left, rgba(51,65,85,0.4), transparent 60%),
+                        radial-gradient(circle at bottom right, rgba(15,23,42,0.9), transparent 60%),
+                        rgba(15,23,42,0.95);
+            border: 1px solid rgba(148,163,253,0.4);
+        }
+    
+        .action h2 { font-size: 15px; margin: 0 0 6px; }
+        .action p  { font-size: 13px; margin: 0 0 10px; color: var(--muted); }
+    
+        /* Primary link/button style */
+        .link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,253,0.8);
+            text-decoration: none;
+            cursor: pointer;
+            color: var(--text);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, rgba(110,231,255,0.35), rgba(167,139,250,0.35));
+        }
+    
+        /* Secondary/link variant */
+        .link.secondary {
+            background: rgba(15,23,42,0.95);
+            color: var(--muted);
+            border-color: rgba(148,163,253,0.6);
+        }
+    
+        /* Table styles used for stats */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        thead { background: rgba(15,23,42,1); }
+        th, td { padding: 6px 8px; }
+        th { text-align: left; color: var(--muted); border-bottom: 1px solid rgba(51,65,85,1); }
+        tbody tr:nth-child(even) { background: rgba(15,23,42,0.9); }
+        tbody tr:nth-child(odd)  { background: rgba(15,23,42,0.8); }
+        tbody tr:hover { background: rgba(30,64,175,0.55); }
+    
+        /* Generic modal styling (not directly used here but matches rest of app) */
+        #sniff-modal, #scan-modal, #perf-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.85);
+            backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+        }
+    
+        #sniff-modal > div, #scan-modal > div, #perf-modal > div {
+            background: var(--panel-soft);
+            border-radius: 18px;
+            border: 1px solid rgba(148,163,253,0.8) !important;
+            color: var(--text);
+            box-shadow: 0 22px 60px rgba(15,23,42,0.95);
+        }
+    
+        /* Footer text */
+        .footer {
+            margin-top: auto;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            padding-top: 10px;
+        }
+    
+        /* Link styling in this layout */
+        .page a, .container a { color: var(--muted) !important; text-decoration: none; }
+        .page a:hover, .container a:hover { color: var(--accent-2) !important; }
+
+        /* Simple spacing for form groups and buttons (optional but handy) */
+        .form-group {
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--muted);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0b1120;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,253,0.8);
+            text-decoration: none;
+            cursor: pointer;
+            color: var(--text);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, rgba(110,231,255,0.35), rgba(167,139,250,0.35));
+            margin-right: 8px;
+        }
+
+        .status {
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .results {
+            margin-top: 18px;
+        }
+
+        /* Mobile padding tweaks */
+        @media (max-width:720px){ .container { padding:18px 14px; } }
+    </style>
+</head>
+<body>
+    <!-- Main sniffer page container -->
+    <div class="container">
+        <!-- Back navigation link -->
+        <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
+        
+        <!-- Page header -->
+        <h1>Packet Sniffer</h1>
+        <p>Capture and analyze network traffic</p>
+        
+        <!-- Sniffer configuration form -->
+        <form id="snifferForm" method="POST" action="{{ url_for('sniffer') }}">
+            <!-- Duration input -->
+            <div class="form-group">
+                <label for="duration">Capture Duration (seconds):</label>
+                <input type="number" id="duration" name="duration" value="10" min="1" max="300" required>
+            </div>
+            
+            <!-- Protocol filter dropdown -->
+            <div class="form-group">
+                <label for="filter">Protocol Filter (optional):</label>
+                <select id="filter" name="filter">
+                    <option value="">All Traffic</option>
+                    <option value="tcp">TCP</option>
+                    <option value="udp">UDP</option>
+                    <option value="icmp">ICMP</option>
+                    <option value="arp">ARP</option>
+                    <option value="dns">DNS</option>
+                    <option value="http">HTTP</option>
+                    <option value="https">HTTPS</option>
+                </select>
+            </div>
+
+            <!-- Target device dropdown (from saved devices) -->
+            <div class="form-group">
+                <label for="device">Target Device (optional):</label>
+                <select id="device" name="device">
+                    <option value="">All Devices (Default Interface)</option>
+                    {% if devices %}
+                        {% for device in devices %}
+                            <option value="{{ device.ip }}">{{ device.hostname }} ({{ device.ip }})</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+
+            <!-- Optional interface name -->
+            <div class="form-group">
+                <label for="interface">Or Specify Interface:</label>
+                <input type="text" id="interface" name="interface" placeholder="e.g., eth0, wlan0">
+            </div>
+            
+            <!-- Submit capture + link to analysis page -->
+            <button type="submit" class="button">Start Capture</button>
+            <a href="{{ url_for('sniffer_analysis') }}" class="link">View Past Captures & Analysis →</a>
+        </form>
+        
+        <!-- Status message area -->
+        <div id="status" class="status">
+            {% if message %}
+                <p>{{ message }}</p>
+            {% endif %}
+        </div>
+        
+        <!-- Capture statistics table (only if stats available) -->
+        {% if stats %}
+        <div class="results">
+            <h2>Capture Statistics</h2>
+            <table>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Total Packets</td>
+                    <td>{{ stats.total }}</td>
+                </tr>
+                <tr>
+                    <td>TCP Packets</td>
+                    <td>{{ stats.tcp }}</td>
+                </tr>
+                <tr>
+                    <td>UDP Packets</td>
+                    <td>{{ stats.udp }}</td>
+                </tr>
+                <tr>
+                    <td>ICMP Packets</td>
+                    <td>{{ stats.icmp }}</td>
+                </tr>
+                <tr>
+                    <td>ARP Packets</td>
+                    <td>{{ stats.arp }}</td>
+                </tr>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        // If a message was set from the backend, show and style the status block
+        {% if message %}
+        document.getElementById('status').style.display = 'block';
+        document.getElementById('status').classList.add('{{ status_type }}');
+        {% endif %}
+        
+        // On form submit, show a "capturing" message
+        document.getElementById('snifferForm').addEventListener('submit', function(e) {
+            document.getElementById('status').style.display = 'block';
+            document.getElementById('status').classList.add('info');
+            document.getElementById('status').innerHTML = '<p>Capturing packets... Please wait.</p>';
+        });
+    </script>
+</body>
+</html>
