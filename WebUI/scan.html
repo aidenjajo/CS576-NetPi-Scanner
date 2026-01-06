@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--
+    Team Members: Aiden Jajo, Diego Lopez, Manuel Jimenez, Romel Aleman
+    School: San Diego State University
+    Course: CS576-03 - Computer Networks and Distributed Systems
+    Project: NetPi-Scanner
+    
+    Network scanning page for discovering active devices.
+    Allows users to initiate network scans and view previously discovered devices.
+    -->
+    
+    <meta charset="UTF-8">
+    <title>Scan Network – NetPi Scanner</title>
+
+    <!-- Page styles and theme colors -->
+    <style>
+        :root {
+            /* Theme colors */
+            --bg:#020617;
+            --panel:#0b1120;
+            --panel-soft:#0f172a;
+            --border:#1d2755;
+            --text:#e6e9f5;
+            --muted:#a9b0c7;
+            --accent:#6ee7ff;
+            --accent-2:#a78bfa;
+        }
+    
+        /* Reset */
+        * { box-sizing: border-box; }
+    
+        /* Page layout and background */
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 32px 12px;
+            background: radial-gradient(circle at 0% 0%, #1e293b 0, transparent 55%),
+                        radial-gradient(circle at 110% 0%, #4c1d95 0, transparent 55%),
+                        radial-gradient(circle at 0% 120%, #0f172a 0, transparent 55%),
+                        var(--bg);
+        }
+    
+        /* Main card container */
+        .container {
+            max-width: 880px;
+            width: 100%;
+            background: radial-gradient(circle at top left, rgba(148,163,253,0.06), transparent 60%),
+                        radial-gradient(circle at bottom right, rgba(45,212,191,0.04), transparent 60%),
+                        var(--panel-soft);
+            border: 1px solid rgba(148,163,253,0.25);
+            border-radius: 24px;
+            padding: 22px 22px 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 60vh;
+            box-shadow: 0 26px 80px rgba(15,23,42,0.85), 0 0 0 1px rgba(15,23,42,0.9);
+            backdrop-filter: blur(26px);
+        }
+    
+        /* Page title */
+        h1 {
+            margin-top: 0;
+            font-size: 22px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #f9fafb;
+        }
+    
+        .subtitle { font-size: 14px; margin-bottom: 20px; color: var(--muted); }
+
+        /* Action card layout */
+        .actions { display: flex; flex-wrap: wrap; gap: 16px; }
+    
+        /* Single action card */
+        .action {
+            flex: 1 1 220px;
+            border-radius: 16px;
+            padding: 14px 16px 12px;
+            background: radial-gradient(circle at top left, rgba(51,65,85,0.4), transparent 60%),
+                        radial-gradient(circle at bottom right, rgba(15,23,42,0.9), transparent 60%),
+                        rgba(15,23,42,0.95);
+            border: 1px solid rgba(148,163,253,0.4);
+        }
+    
+        .action h2 { font-size: 15px; margin: 0 0 6px; }
+        .action p  { font-size: 13px; margin: 0 0 10px; color: var(--muted); }
+    
+        /* Button style for actions */
+        .link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,253,0.8);
+            text-decoration: none;
+            cursor: pointer;
+            color: var(--text);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, rgba(110,231,255,0.35), rgba(167,139,250,0.35));
+        }
+    
+        .link.secondary {
+            background: rgba(15,23,42,0.95);
+            color: var(--muted);
+            border-color: rgba(148,163,253,0.6);
+        }
+    
+        /* Saved devices table styles */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        thead { background: rgba(15,23,42,1); }
+        th, td { padding: 6px 8px; }
+        th { text-align: left; color: var(--muted); border-bottom: 1px solid rgba(51,65,85,1); }
+        tbody tr:nth-child(even) { background: rgba(15,23,42,0.9); }
+        tbody tr:nth-child(odd)  { background: rgba(15,23,42,0.8); }
+        tbody tr:hover { background: rgba(30,64,175,0.55); }
+    
+        /* Modal overlay for scan progress */
+        #scan-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.85);
+            backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+        }
+    
+        /* Modal content styling */
+        #scan-modal > div {
+            background: var(--panel-soft);
+            border-radius: 18px;
+            border: 1px solid rgba(148,163,253,0.8) !important;
+            color: var(--text);
+            box-shadow: 0 22px 60px rgba(15,23,42,0.95);
+        }
+    
+        /* Footer text */
+        .footer {
+            margin-top: auto;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            padding-top: 10px;
+        }
+    
+        /* Link styling */
+        .page a, .container a { color: var(--muted) !important; text-decoration: none; }
+        .page a:hover, .container a:hover { color: var(--accent-2) !important; }
+    
+        /* Mobile padding tweaks */
+        @media (max-width:720px){ .container { padding:18px 14px; } }
+    </style> 
+</head>
+<body>
+    <!-- Main scan page wrapper -->
+    <div class="page container">
+        <!-- Page header -->
+        <h1>Scan Network</h1>
+        <p class="subtitle">Run a discovery scan or view previously scanned devices.</p>
+
+        <!-- Action area -->
+        <div class="actions">
+            <!-- Button to start a new scan -->
+            <div class="action">
+                <h2>Scan Network</h2>
+                <p>Run a discovery scan on the configured subnet.</p>
+                <button id="start-scan" class="link" style="border:none; cursor:pointer;">Start Scan</button>
+            </div>
+        </div>
+
+        <!-- Saved devices section -->
+        <div style="margin-top:18px;">
+            <h2>Saved Devices</h2>
+            {% if devices and devices|length > 0 %}
+                <!-- Table of saved devices -->
+                <div style="border:1px solid #ddd; border-radius:4px; padding:8px; background:#fafafa;">
+                    <table style="width:100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left; padding:6px; border-bottom:1px solid #eee;">IP</th>
+                                <th style="text-align:left; padding:6px; border-bottom:1px solid #eee;">MAC</th>
+                                <th style="text-align:left; padding:6px; border-bottom:1px solid #eee;">Hostname</th>
+                                <th style="text-align:left; padding:6px; border-bottom:1px solid #eee;">Active</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for d in devices %}
+                            <tr>
+                                <td style="padding:6px; border-bottom:1px solid #f6f6f6;">{{ d['IP'] }}</td>
+                                <td style="padding:6px; border-bottom:1px solid #f6f6f6;">{{ d['MAC'] }}</td>
+                                <td style="padding:6px; border-bottom:1px solid #f6f6f6;">{{ d['Hostname'] }}</td>
+                                <td style="padding:6px; border-bottom:1px solid #f6f6f6;">{{ d['Active'] }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <!-- If no devices have been scanned yet -->
+                <p><em>No saved devices.</em></p>
+            {% endif %}
+        </div>
+
+        <!-- Modal shown while scanning / when finished -->
+        <div id="scan-modal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.4); align-items:center; justify-content:center;">
+            <div style="background:#fff; padding:20px; border-radius:6px; max-width:420px; margin:0 auto; text-align:center;">
+                <p id="scan-modal-message">Scanning... This may take a while</p>
+                <div id="scan-modal-actions" style="margin-top:12px; display:none;">
+                    <button id="scan-ok" class="link secondary" style="border:none; background:#fff; color:#D41736; cursor:pointer;">OK</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Back to home link -->
+        <p style="margin-top:12px;"><a href="{{ url_for('index') }}">← Back to Home</a></p>
+        <p class="footer">NetPi Scanner – quick actions.</p>
+    </div>
+
+    <!-- JavaScript for starting scan and handling modal -->
+    <script>
+        const startBtn = document.getElementById('start-scan');
+        const modal = document.getElementById('scan-modal');
+        const modalMessage = document.getElementById('scan-modal-message');
+        const modalActions = document.getElementById('scan-modal-actions');
+        const scanOk = document.getElementById('scan-ok');
+
+        // Show modal with a message
+        function showModal(msg, showOk=false){
+            modalMessage.textContent = msg;
+            modal.style.display = 'flex';
+            modalActions.style.display = showOk ? 'block' : 'none';
+        }
+
+        // Hide modal
+        function hideModal(){
+            modal.style.display = 'none';
+        }
+
+        // When "Start Scan" is clicked, make POST request to /scan
+        startBtn.addEventListener('click', () => {
+            showModal('Scanning...', false);
+
+            fetch('{{ url_for("scan") }}', { method: 'POST' })
+                .then(resp => resp.json())
+                .then(data => {
+                    if(data && data.status === 'ok'){
+                        showModal('Scan complete', true);
+                    } else {
+                        showModal('Scan failed: ' + (data.message || 'unknown'), true);
+                    }
+                })
+                .catch(err => {
+                    showModal('Scan failed: ' + err.toString(), true);
+                });
+        });
+
+        // Close modal and reload to show updated device list
+        scanOk.addEventListener('click', () => {
+            hideModal();
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>
